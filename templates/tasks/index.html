@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}My Tasks - Afah{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0"><i class="bi bi-list-task text-primary me-2"></i>My Tasks</h2>
+  <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>New Task
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="all" {% if status_filter=='all' %}selected{% endif %}>All statuses</option>
+          <option value="pending" {% if status_filter=='pending' %}selected{% endif %}>Pending</option>
+          <option value="in_progress" {% if status_filter=='in_progress' %}selected{% endif %}>In Progress</option>
+          <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+          <option value="overdue" {% if status_filter=='overdue' %}selected{% endif %}>Overdue</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">Priority</label>
+        <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="all" {% if priority_filter=='all' %}selected{% endif %}>All priorities</option>
+          <option value="high" {% if priority_filter=='high' %}selected{% endif %}>High</option>
+          <option value="medium" {% if priority_filter=='medium' %}selected{% endif %}>Medium</option>
+          <option value="low" {% if priority_filter=='low' %}selected{% endif %}>Low</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">Sort by</label>
+        <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="deadline" {% if sort=='deadline' %}selected{% endif %}>Deadline</option>
+          <option value="priority" {% if sort=='priority' %}selected{% endif %}>Priority</option>
+          <option value="created" {% if sort=='created' %}selected{% endif %}>Created</option>
+        </select>
+      </div>
+      {% if status_filter != 'all' or priority_filter != 'all' %}
+      <div class="col-auto">
+        <a href="{{ url_for('tasks.index') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x-circle me-1"></i>Clear
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Task Stats -->
+{% if tasks %}
+<div class="row g-3 mb-4">
+  {% set total = tasks|length %}
+  {% set done = tasks|selectattr('status','equalto','completed')|list|length %}
+  {% set overdue = tasks|selectattr('status','equalto','overdue')|list|length %}
+  {% set high = tasks|selectattr('priority','equalto','high')|list|length %}
+  <div class="col-6 col-md-3">
+    <div class="card border-0 bg-primary bg-opacity-10 text-center py-3">
+      <div class="fs-2 fw-bold text-primary">{{ total }}</div>
+      <div class="small text-muted">Total</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 bg-success bg-opacity-10 text-center py-3">
+      <div class="fs-2 fw-bold text-success">{{ done }}</div>
+      <div class="small text-muted">Completed</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 bg-danger bg-opacity-10 text-center py-3">
+      <div class="fs-2 fw-bold text-danger">{{ overdue }}</div>
+      <div class="small text-muted">Overdue</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 bg-warning bg-opacity-10 text-center py-3">
+      <div class="fs-2 fw-bold text-warning">{{ high }}</div>
+      <div class="small text-muted">High Priority</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Task List -->
+{% if tasks %}
+  <div class="row g-3">
+    {% for task in tasks %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="card h-100 border-0 shadow-sm task-card priority-{{ task.priority }}">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="card-title fw-semibold mb-0 text-truncate me-2">{{ task.title }}</h6>
+            <span class="badge bg-{{ task.priority_class }} flex-shrink-0">{{ task.priority }}</span>
+          </div>
+          {% if task.description %}
+          <p class="card-text text-muted small mb-2 description-clamp">{{ task.description }}</p>
+          {% endif %}
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge bg-{{ task.status_class }} bg-opacity-15 text-{{ task.status_class }} border border-{{ task.status_class }} border-opacity-25">
+              {{ task.status | replace('_', ' ') | title }}
+            </span>
+            <span class="small text-muted">
+              <i class="bi bi-clock me-1"></i>{{ task.deadline.strftime('%b %d, %Y %H:%M') }}
+            </span>
+          </div>
+          <!-- Mini countdown -->
+          {% if task.status != 'completed' %}
+          <div class="mini-countdown text-center rounded py-1 mb-3 {% if task.is_overdue %}bg-danger bg-opacity-10 text-danger{% else %}bg-primary bg-opacity-10 text-primary{% endif %}"
+               data-task-id="{{ task.id }}"
+               data-seconds="{{ task.seconds_until_deadline }}"
+               data-overdue="{{ 'true' if task.is_overdue else 'false' }}">
+            {% if task.is_overdue %}
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue
+            {% else %}
+              <i class="bi bi-hourglass-split me-1"></i>
+              <span class="countdown-display">Loading...</span>
+            {% endif %}
+          </div>
+          {% endif %}
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('tasks.detail', task_id=task.id) }}" class="btn btn-sm btn-outline-primary flex-grow-1">
+              <i class="bi bi-eye me-1"></i>View
+            </a>
+            <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}"
+                  onsubmit="return confirm('Delete this task?')">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-inbox display-1 text-muted"></i>
+    <h5 class="mt-3 text-muted">No tasks found</h5>
+    <p class="text-muted">
+      {% if status_filter != 'all' or priority_filter != 'all' %}
+        Try adjusting your filters.
+      {% else %}
+        Create your first task to get started!
+      {% endif %}
+    </p>
+    <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Create Task
+    </a>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/countdown.js') }}"></script>
+<script>
+  initMiniCountdowns();
+</script>
+{% endblock %}
