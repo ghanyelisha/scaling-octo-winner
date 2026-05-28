@@ -173,13 +173,22 @@ cp .env.example .env
 Then open `.env` and fill in your values (see [Configuration](#configuration)).
 
 **5. Run the application**
+
+*Development* — Flask's built-in server with auto-reload:
 ```bash
 python app.py
 ```
+Navigate to `http://localhost:5000`
 
-**6. Open the app**
+*Production* — Gunicorn WSGI server:
+```bash
+# With default config (binds to 0.0.0.0:8000)
+gunicorn --config gunicorn.conf.py wsgi:app
 
-Navigate to `http://localhost:5000` in your browser.
+# Override port via environment variable
+GUNICORN_BIND=0.0.0.0:5000 gunicorn --config gunicorn.conf.py wsgi:app
+```
+Navigate to `http://localhost:8000`
 
 ---
 
